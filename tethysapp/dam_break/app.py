@@ -1,5 +1,6 @@
 from tethys_sdk.base import TethysAppBase, url_map_maker
 from tethys_sdk.stores import PersistentStore
+from tethys_sdk.permissions import Permission, PermissionGroup
 
 class DamBreak(TethysAppBase):
     """
@@ -15,6 +16,38 @@ class DamBreak(TethysAppBase):
     description = 'This app is for demonstrating how to use Tethys Platform.'
     enable_feedback = False
     feedback_emails = []
+
+    def permissions(self):
+        """
+        Permission for this app.
+        """
+        can_view_home = Permission(
+            name='can_view_home',
+            description='Can view the home page.'
+        )
+        
+        can_view_map = Permission(
+            name='can_view_map',
+            description='Can view the map page.'
+        )
+        
+        can_view_table = Permission(
+            name='can_view_table',
+            description='Can view the table page.'
+        )
+
+
+        admin_group = PermissionGroup(
+            name='admin_group',
+            permissions=[can_view_map, can_view_table, can_view_home]
+        )
+
+        underling_group = PermissionGroup(
+            name='underling_group',
+            permissions=[can_view_home]
+        )
+
+        return (admin_group, underling_group)
 
         
     def url_maps(self):
@@ -35,6 +68,9 @@ class DamBreak(TethysAppBase):
                     UrlMap(name='table',
                            url='dam-break/table',
                            controller='dam_break.controllers.table'),
+                    UrlMap(name='hydrograph_ajax',
+                           url='dam-break/map/hydrograph',
+                           controller='dam_break.controllers.hydrograph_ajax'),
         )
 
         return url_maps

@@ -1,11 +1,12 @@
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from tethys_sdk.gizmos import *
+from tethys_sdk.permissions import has_permission, permission_required
 
 from .model import SessionMaker, Dam
 from .utilities import generate_flood_hydrograph, write_hydrograph_input_file
 
-@login_required()
+@permission_required('can_view_home')
 def home(request):
     """
     Controller for the app home page.
@@ -57,7 +58,11 @@ def home(request):
                'time_peak_slider': time_peak_slider,
                'peak_duration_slider': peak_duration_slider,
                'falling_limb_duration': falling_limb_duration,
-               'submit_button': submit_button
+               'submit_button': submit_button,
+               'show_home_button': has_permission(request, 'can_view_home'),
+               'show_map_button': has_permission(request, 'can_view_map'),
+               'show_table_button': has_permission(request, 'can_view_table'),
+               'is_staff': request.user.is_staff,
     }
 
     return render(request, 'dam_break/home.html', context)
@@ -109,11 +114,15 @@ def hydrograph(request):
         height='500px'
     )
 
-    context = {'flood_plot': flood_plot}
+    context = {'flood_plot': flood_plot,
+               'show_home_button': has_permission(request, 'can_view_home'),
+               'show_map_button': has_permission(request, 'can_view_map'),
+               'show_table_button': has_permission(request, 'can_view_table'),
+               }
 
     return render(request, 'dam_break/hydrograph.html', context)
 
-@login_required()
+@permission_required('can_view_map')
 def map(request):
     """
     Controller to handle map page.
@@ -166,7 +175,8 @@ def map(request):
     geojson_layer = MVLayer(source='GeoJSON',
                             options=geojson_gages,
                             legend_title='Dam Locations',
-                            legend_extent=[min(lon_list)-delta, min(lat_list)-delta, max(lon_list)+delta, max(lat_list)+delta])
+                            legend_extent=[min(lon_list)-delta, min(lat_list)-delta, max(lon_list)+delta, max(lat_list)+delta],
+                            feature_selection=True)
 
     # Define initial view for Map View
     view_options = MVView(
@@ -187,11 +197,15 @@ def map(request):
                           )
 
     # Pass variables to the template via the context dictionary
-    context = {'map_options': map_options}
+    context = {'map_options': map_options,
+               'show_home_button': has_permission(request, 'can_view_home'),
+               'show_map_button': has_permission(request, 'can_view_map'),
+               'show_table_button': has_permission(request, 'can_view_table'),
+               }
 
     return render(request, 'dam_break/map.html', context)
 
-@login_required()
+@permission_required('can_view_table')
 def table(request):
     """
     Controller to handle table page.
@@ -203,7 +217,11 @@ def table(request):
     dams = session.query(Dam).all()
 
     # Pass variables to the template via the context dictionary
-    context = {'dams': dams}
+    context = {'dams': dams,
+               'show_home_button': has_permission(request, 'can_view_home'),
+               'show_map_button': has_permission(request, 'can_view_map'),
+               'show_table_button': has_permission(request, 'can_view_table'),
+               }
     
     rendered_page = render(request, 'dam_break/table.html', context)
     
@@ -211,4 +229,52 @@ def table(request):
     session.close()
     
     return rendered_page
+    
+
+@login_required()
+def hydrograph_ajax(request):
+    """
+    Controller for the hydrograph ajax request.
+    """
+    # Default Values
+    peak_flow = 800.0
+    time_to_peak = 6
+    peak_duration = 6
+    falling_limb_duration = 24
+
+    if request.GET:
+        peak_flow = float(request.GET['peak_flow'])
+        time_to_peak = int(request.GET['time_to_peak'])
+        peak_duration = int(request.GET['peak_duration'])
+        falling_limb_duration = int(request.GET['falling_limb_duration'])
+
+    # Generate hydrograph
+    hydrograph = generate_flood_hydrograph(
+        peak_flow=peak_flow, 
+        time_to_peak=time_to_peak, 
+        peak_duration=peak_duration, 
+        falling_limb_duration=falling_limb_duration
+    )
+
+    # Configure the Hydrograph Plot View
+    flood_plot = TimeSeries(
+        engine='highcharts',
+        title='Flood Hydrograph',
+        y_axis_title='Flow',
+        y_axis_units='cms',
+        series=[
+           {
+               'name': 'Flood Hydrograph',
+               'color': '#0066ff',
+               'data': hydrograph,
+           },
+        ],
+        legend=False,
+        width='100%',
+        height='280px'
+    )
+
+    context = {'flood_plot': flood_plot}
+
+    return render(request, 'dam_break/hydrograph_ajax.html', context)
 

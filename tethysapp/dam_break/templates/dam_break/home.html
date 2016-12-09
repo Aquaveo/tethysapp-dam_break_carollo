@@ -4,6 +4,9 @@
 {% block app_content %}
   <h1>Generate Flood Hydrograph</h1>
   <p>Use the controls below to adjust the flood hydrograph parameters.</p>
+  {% if is_staff %}
+  <p style="color: red;">STAFF USER</p>
+  {% endif %}
   <form id='hydrograph-form' action="{% url 'dam_break:hydrograph' %}" method="post">
     {% csrf_token %}
     {% gizmo range_slider peak_flow_slider %}

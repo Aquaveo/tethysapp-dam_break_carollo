@@ -2,6 +2,20 @@
 
 {% load staticfiles %}
 
+{% block meta %}
+    {{ block.super }}
+    <script>
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+    
+      ga('create', 'UA-56964943-3', 'auto');
+      ga('send', 'pageview');
+    
+    </script>
+{% endblock %}
+
 {% block title %}- {{ tethys_app.name }}{% endblock %}
 
 {% block app_icon %}
@@ -14,9 +28,15 @@
 
 {% block app_navigation_items %}
   <li class="title">App Navigation</li>
+  {% if show_home_button %}
   <li {% if request.path == "/apps/dam-break/" %} class="active" {% endif %}><a href="{% url 'dam_break:home' %}">Home</a></li>
+  {% endif %}
+  {% if show_map_button %}
   <li {% if 'map' in request.path %} class="active" {% endif %}><a href="{% url 'dam_break:map' %}">Map</a></li>
+  {% endif %}
+  {% if show_table_button %}
   <li {% if 'table' in request.path %} class="active" {% endif %}><a href="{% url 'dam_break:table' %}">Table</a></li>
+  {% endif %}
 {% endblock %}
 
 {% block app_content %}
